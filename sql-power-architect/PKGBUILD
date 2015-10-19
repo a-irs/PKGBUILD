@@ -1,0 +1,30 @@
+pkgname=sql-power-architect
+pkgver=1.0.7
+pkgrel=1
+pkgdesc="A data modeling and profiling tool for SQL."
+arch=('any')
+url="http://www.sqlpower.ca/page/architect"
+depends=('java-environment')
+source=(http://download.sqlpower.ca/architect/1.0.7/community/SQL-Power-Architect-generic-jdbc-$pkgver.tar.gz \
+        sql-power-architect.sh \
+        sql-power-architect.desktop
+)
+sha256sums=('e88f90ce238a35d31db5fb6c0677a056d0bd850970f6e6261cf867fc996bf378'
+            '6f515831365d7c85e6de6e7e1d178f79a9afee4019f677576db0a61bdee3bec3'
+            '01d73c080402ca340e4e414363a8644fa6ba9cfe173855d14af355a2faaf3bd2'
+)
+package() {
+  cd "$srcdir"
+
+  install -d -m755 "$pkgdir"/usr/{bin,share}
+  install -d -m755 "$pkgdir/opt"
+  cp -a "architect-$pkgver" "$pkgdir/opt/$pkgname"
+  chown -R root:root "$pkgdir"/{opt,usr}
+
+  find "$pkgdir/opt/$pkgname" -type d -exec chmod 0755 {} ';'
+  find "$pkgdir/opt/$pkgname" -type f -exec chmod 0644 {} ';'
+
+  install -D -m755 "$srcdir/sql-power-architect.sh" "$pkgdir/usr/bin/$pkgname"
+  install -D -m644 "$srcdir/sql-power-architect.desktop" "$pkgdir/usr/share/applications/sql-power-architect.desktop"
+  install -D -m644 "architect-$pkgver/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE.txt"
+}

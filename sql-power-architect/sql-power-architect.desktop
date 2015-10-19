@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=SQL Power Architect
+Comment=SQL data modeling and profiling tool
+Exec=sql-power-architect %u
+Icon=sql-power-architect
+Terminal=false
+Type=Application
+Categories=Development;IDE;
