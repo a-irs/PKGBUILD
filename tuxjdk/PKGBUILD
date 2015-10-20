@@ -1,0 +1,76 @@
+pkgname=tuxjdk
+_major=8
+_minor=5
+_build=b08
+pkgver=${_major}u${_minor}
+pkgrel=1
+pkgdesc="JDK with TuxJDK font rendering patches."
+arch=('x86_64')
+url="http://www.sqlpower.ca/page/architect"
+depends=('ca-certificates-java' 'desktop-file-utils' 'hicolor-icon-theme' 'java-environment-common'
+         'java-runtime-common' 'libx11' 'libxrender' 'libxslt' 'libxtst' 'shared-mime-info' 'xdg-utils')
+makedepends=('pacman>=4.2.0')
+provides=("java-runtime=$_major" "java-runtime-headless=$_major" "java-web-start=$_major" "java-environment=$_major"
+          "java-runtime-jre=$_major" "java-runtime-headless-jre=$_major" "java-web-start-jre=$_major" "java-environment-jdk=$_major")
+source=(http://urshulyak.com:85/jdk-$pkgver-tuxjdk-$_build.tar.gz)
+install=$pkgname.install
+sha256sums=('12bd110230e0ed959299f3f3c3196fbd504fdf89d5089a632ef21a0749ebb3c6')
+
+_jname=${pkgname}${_major}
+_jvmdir=/usr/lib/jvm/java-$_major-$pkgname
+
+options=('!strip') # JDK debug-symbols
+
+
+package() {
+    cd jdk-$pkgver-$pkgname-$_build
+
+    msg2 "Creating directory structure..."
+    install -d "$pkgdir"/etc/.java/.systemPrefs
+    install -d "$pkgdir"/usr/lib/jvm/java-$_major-$pkgname/bin
+    install -d "$pkgdir"/usr/lib/mozilla/plugins
+    install -d "$pkgdir"/usr/share/licenses/java$_major-$pkgname
+
+    msg2 "Removing redundancies..."
+    rm -r demo sample
+
+    msg2 "Moving contents..."
+    mv * "$pkgdir"/$_jvmdir
+
+    # Cd to the new playground
+    cd "$pkgdir"/$_jvmdir
+
+    msg2 "Fixing directory structure..."
+    # Replace duplicate binaries in bin/ with links to jre/bin/
+    for i in $(ls jre/bin/); do
+        ln -sf "$_jvmdir/jre/bin/$i" "bin/$i"
+    done
+
+    # Move confs to /etc and link back to /usr: /usr/lib/jvm/java-$_jname/jre/lib -> /etc
+    for new_etc_path in ${backup[@]}; do
+        # Old location
+        old_usr_path="jre/lib/${new_etc_path#*$_jname/}"
+
+        # Move
+        install -Dm644 "$old_usr_path" "$pkgdir/$new_etc_path"
+        ln -sf "/$new_etc_path" "$old_usr_path"
+    done
+
+    # Link NPAPI plugin
+    case "$CARCH" in
+        i686)   ln -sf $_jvmdir/jre/lib/i386/libnpjp2.so  "$pkgdir"/usr/lib/mozilla/plugins/libnpjp2-$_jname.so ;;
+        x86_64) ln -sf $_jvmdir/jre/lib/amd64/libnpjp2.so "$pkgdir"/usr/lib/mozilla/plugins/libnpjp2-$_jname.so ;;
+    esac
+
+    # Replace JKS keystore with 'ca-certificates-java'
+    ln -sf /etc/ssl/certs/java/cacerts jre/lib/security/cacerts
+
+    # Suffix man pages
+    for i in $(find man/ -type f); do
+        mv "$i" "${i/.1}-$_jname.1"
+    done
+
+    # Move man pages
+    mv man/ja_JP.UTF-8/ man/ja
+    mv man/ "$pkgdir"/usr/share
+}
